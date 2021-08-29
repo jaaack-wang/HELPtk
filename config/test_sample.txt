@@ -1,0 +1,92 @@
+ # below are samples for testing the regular expressions used in the preprocessing_rules and normalizing_rules files. The first column contain the patterns that may occur in an Early Modern English corpus, the second column are the expected forms after text preprocessing and the last column are the expected forms after text normalizing. Some examples are simply made up for testing purposes. Please skip the first line when using this test sample. 
+th'are	th' are	they are
+th'art	th' art	they are
+they 'rt	they 'rt	they are
+o'th	o 'th	of the
+th' other	th' other	the other
+heav'n	heav'n	heaven
+ev'ry	ev'ry	every
+e'ery	e'ery	every
+e'er	e'er	ever
+ne'er	ne'er	never
+o'er	o'er	over
+e'en	e'en	even
+ev'n	ev'n	even
+pow'r	pow'r	power
+giv'n	giv'n	given
+int'rest	int'rest	interest
+int'resting	int'resting	interesting
+whil'st	whil'st	whilst
+t'other	t' other	the other
+on't	on 't	on it
+is't	is 't	is it
+d'ye	d' ye	do you
+for't	for 't	for it
+aaaa 'twas	aaaa 't was	aaaa it was
+aaaa 'twere	aaaa 't were	aaaa it were
+aaaa 'tis	aaaa 't is	aaaa it is
+aaaa 'twould	aaaa 't would	aaaa it would
+do't	do 't	do it
+thou	thou	you
+ye	ye	you
+thee	thee	you
+thy	thy	your
+thine	thine	yours
+ſhou'd	ſhou嗨'd	should
+shou'd	shou嗨'd	should
+cou'd	cou嗨'd	could
+wou'd	wou嗨'd	would
+I'd	I 'd	I 'd
+you'd	you 'd	you 'd
+call'd	call嗨'd	called
+seem'd	seem嗨'd	seemed
+hang'd	hang嗨'd	hung
+continue'd	continue嗨'd	continued
+canst	canst	can
+shalt	shalt	shall
+wouldst	wouldst	would
+shouldst	shouldst	should
+mayest	mayest	may
+mightest	mightest	might
+may'st	may'st	may
+should'st	should'st	should
+couldst	couldst	could
+shouldest	shouldest	should
+quoth	quoth	quotes
+hath	hath	has
+doth	doth	does
+doeth	doeth	does
+beeth	beeth	be
+hadst	hadst	had
+didst	didst	did
+hast	hast	have
+saith	saith	says
+a-going	a-going	going
+a-eating	a-eating	eating
+unto	unto	to
+publick	publick	public
+publike	publike	public
+oft	oft	often
+shew	shew	show
+shewed	shewed	showed
+adde	adde	add
+alwaies	alwaies	always
+blest	blest	blessed
+betwixt	betwixt	between
+perswade	perswade	persuade
+satisfie	satisfie	satisfy
+finde	finde	find
+ruine	ruine	ruin
+antient	antient	ancient
+soveraign	soveraign	sovereign
+possest	possest	possessed
+shewn	shewn	shown
+shewing	shewing	showing
+wert	wert	were
+justifie	justifie	justify
+writ	writ	write
+chuse	chuse	choose
+surprize	surprize	surprise
+cometh	cometh	comes
+believeth	believeth	believes
+satisfyeth	satisfyeth	satisfies
