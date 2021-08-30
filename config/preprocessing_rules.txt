@@ -1,8 +1,8 @@
 th\s?'\s?are	th' are	
 th\s?'\s?art	th' art			###################################################
-(\S+) '\s?rt	\1 'rt			# 1. The preprocessing rules undo some            #
+(\w)\s?'\s?rt	\1 'rt			# 1. The preprocessing rules undo some            #
 o\s?'\s?th	o 'th			# tokenization by standard Stanford Tokenizer     #
-th\s?' (\S+)	th' \1			# that should not be done.                        #
+th\s?'\s?(\w)	th' \1			# that should not be done.                        #
 heav\s?'\s?n	heav'n			#                                                 #
 ev\s?'\?ry	ev'ry			# 2. This file should be modified whenever there  #
 e\s?'\s?er\s?y	e'ery			# a new rule added in the normalizing rules file  #
@@ -21,13 +21,14 @@ o\s?n\s?'\s?t	on 't
 i[sſ]\s?'\s?t	is 't
 d\s?'\s?ye	d' ye
 for\s?'\s?t	for 't
-(\S+) '\s?t\s?wa[sſ]	\1 't was
-(\S+) '\s?t\s?were	\1 't were
-(\S+) '\s?t\s?i[sſ]	\1 't is
-(\S+) '\s?t\s?would	\1 't would
+(\S)\s?'\s?t\s?wa[sſ]	\1 't was
+(\S)\s?'\s?t\s?were	\1 't were
+(\S)\s?'\s?t\s?I[sſ]	\1 't is
+(\S)\s?'\s?t\s?would	\1 't would
 ([sſ]h|c|w)ou\s?'\s?d	\1ou'd
 may\s?'\s?st	may'st
 should\s?'\s?st	should'st
-(\S+)\s?'\s?d	\1嗨'd	# a trick to mark the converted simple past tense for later spell norm.
+(\w)\s?'\s?d	\1嗨'd	# a trick to mark the converted simple past tense for later spell norm.
 (I|we|you|thy|thou|ye|he|she|they|it|there|who|that|why|what)嗨'd	\1 'd	# undo the wrong "'d ---> ed"
 do\s?'\s?t	do 't
+(\w{3,})(\.)(\w{3,})	\1 \2 \3

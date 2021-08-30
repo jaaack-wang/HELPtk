@@ -46,7 +46,7 @@ canst	canst	can
 shalt	shalt	shall
 wouldst	wouldst	would
 shouldst	shouldst	should
-mayest	mayest	may
+may'st	may'st	may
 mightest	mightest	might
 may'st	may'st	may
 should'st	should'st	should
@@ -90,3 +90,5 @@ surprize	surprize	surprise
 cometh	cometh	comes
 believeth	believeth	believes
 satisfyeth	satisfyeth	satisfies
+ill.contriv'd ill contriv'd	ill . contriv嗨'd ill contriv嗨'd	ill . contrived ill contrived
+I, 'tis none of my Buſineſs.	I , 't is none of my Buſineſs .	I , it is none of my Business .

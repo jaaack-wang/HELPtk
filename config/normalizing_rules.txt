@@ -1,6 +1,6 @@
 th' are	they are	#---------> contraction
 th' art	they are				#######################################################
-(\S+) 'rt	\1 are			# 1. The normalizing regex rules help convert the     #
+(\w) 'rt	\1 are				# 1. The normalizing regex rules help convert the     #
 o 'th	of the				# spelling of the Early Modern English into           #
 do 't	do it				# the contemporary accepted ones.                     #
 heav'n	heaven				#                                                     #
@@ -21,11 +21,11 @@ on 't	on it				# but at the cost of coarse-grained tokenization and  #
 is 't	is it				# a less ideal pos tagging. If we do that, remove     #
 d' ye	do you				# the middle space in the target pattern if any.      #
 for 't	for it				#                                                     #
-(\S+) 't was	\1 it was		# 5. You may need to change "\" into "$" or others    # 
-(\S+) 't were	\1 it were		# if you apply the rules not on Python, such as Java. #
-(\S+) 't is	\1 it is			# The other patterns should be fine to use directly.  #
-(\S+) 't would	\1 it would		#######################################################
-th' (\S+)	the \1
+(\S) 't was	\1 it was		# 5. You may need to change "\" into "$" or others    # 
+(\S) 't were	\1 it were		# if you apply the rules not on Python, such as Java. #
+(\S) 't is	\1 it is			# The other patterns should be fine to use directly.  #
+(\S) 't would	\1 it would		#######################################################
+th' (\w)	the \1
 thou	you	#---------> pronoun
 ye	you
 thee	you
