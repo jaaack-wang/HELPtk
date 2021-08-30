@@ -56,8 +56,12 @@ def textPreprocessing(text, tokenizer=stTokenizer, prep_rules=prep_rules,
     assert tokenizer != None, "No tokenizer given. You can use two tokenizers builtin here: " \
            "whiteSpaceTokenizer (method) and stanfordTokenizer's (class) tokenize (method), " \
            "or any other tokenizer as you please. The tokenizer should return a list of tokens as output."
-    
-    text = ' '.join(tokenizer(text))
+
+    if "%" in text:
+        text = re.sub("%", " was_percent_sign", text) 
+        text = ' '.join(tokenizer(text))
+    else:
+        text = ' '.join(tokenizer(text))
     
     if apply_prep_rules:
         

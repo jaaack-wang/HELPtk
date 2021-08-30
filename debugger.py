@@ -1,6 +1,6 @@
 '''
 - Author: Zhengxiang (Jack) Wang 
-- Date: 2021-08-26 created, 08-27 modified 
+- Date: 2021-08-26 created, 08-29 modified 
 - GitHub: https://github.com/jaaack-wang 
 - About: A set of debuggers for the Historical English Language Processing Toolkit (HELPtk),
 
@@ -190,7 +190,8 @@ def attr_diff_in_xml_word_nodes(filepath, word_node="w", attr_one="Original", at
         - attr_one(str): attribute one.
         - attr_two(str): attribute two.
         - num_of_dif_to_print(int): number of differences to print, defaults to 100. When set 0, 
-                                    show all differences. 
+                                    show all differences.
+        - context_window(int): the context_window to show if a misalignment is identified.
     
     Return(list):
         A list of different related attributes of the word nodes stored in a tuple along with the 
@@ -227,15 +228,33 @@ def print_attr_diff_in_xml_word_nodes(filepath, word_node="w", attr_one="Origina
         print(d)
 
         
-def words_misalignments_logger(filepath, tokenized_lst, normalized_lst):
-    '''Log the words misalignments between the tokenized_lst and normalized_lst, 
+def words_misalignments_logger(filepath, tokenized_lst, compared_lst, name="Normalized",
+                               dif_in_a_row=5, context_window=10):
+    '''Log the words misalignments between the tokenized_lst and compared_lst or annotated_lst, 
     which are not unequally long. All the words misalignments will be logged only if 
-    normalized_lst or tokenized_lst constantly has extra tokens than the other. The log
-    file will be saved in a auto-created word misalignment logger folder in the current
-    working directory where the debugger.py is placed.'''
+    one of the two lists constantly has extra tokens than the other. The log file
+    will be saved in a auto-created word misalignment logger folder in the current
+    working directory where the debugger.py is placed.
+
+    Args:
+        - filepath(str): filepath:
+        - tokenized_lst(list): preprocessed text whitespace tokenized as a list.
+        - compared_lst(list): normalized or annotated list whitespace tokenized as a list.
+        - name (str): Object name to compare, Normalized or Annotated, default to Normalized.
+        - dif_in_a_row(int): if a possible misalignment occurs, how many following
+                        differences or mismathces in a row between the two lists to
+                        ensure the current one is a misalignment. Defaults to 5 as it
+                        is assumed that early modern English text is mostly similar to
+                        modern English. Thus, although the possible misalignment can be
+                        caused by different spellings, it is unlikely that that happens
+                        to 5 following words in a row.
+        - context_window(int): context_window to show around the misaliged instance(s).
+                        Enlarging the context_window helps make up the possible inaccuracy
+                        due to small or large dif_in_a_row value.
+    '''
     
     filename = filepath.split("/")[-1] + ".txt"
-    t_len, n_len = len(tokenized_lst), len(normalized_lst)
+    t_len, n_len = len(tokenized_lst), len(compared_lst)
     
     if not exists("./word misalignment logger/"):
         mkdir("./word misalignment logger/")
@@ -246,39 +265,47 @@ def words_misalignments_logger(filepath, tokenized_lst, normalized_lst):
         return
     
     fw = open(f"./word misalignment logger/{filename}", "w")
-    fw.write(f"Original filepath: {filepath}, tokenized token numbers: {t_len}, normalized token numbers: {n_len}\n\n")
-    temp = "{0:20}{1:20}{2:20}\n"
-    fw.write(temp.format("Word Index", "Preprocessed", "Normalized"))
+    fw.write(f"Original filepath: {filepath}, tokenized token numbers: {t_len}, normalized token numbers: {n_len}\n")
+    temp = "{0}\t{1}\t{2}\n"
+    fw.write(temp.format("Word Index", "Preprocessed", name))
 
-    # make two copies of the tokenized_lst and the normalized_lst
+    # make two copies of the tokenized_lst and the compared_lst
     tk_lst = tokenized_lst.copy()
-    norm_lst = normalized_lst.copy()
+    norm_lst = compared_lst.copy()
     
     total_gap = abs(n_len - t_len)
     pre_mis_idx = 0
     misalign_idx = []
     min_len = min(t_len, n_len)
+    dif_check = lambda x: x[0] != x[1]
     for i in range(min_len):
-        if tokenized_lst[i] != normalized_lst[i]:
+        if tokenized_lst[i] != compared_lst[i]:
             cur_mid_idx = i
             if cur_mid_idx - pre_mis_idx == 1:
-                misalign_idx.append(pre_mis_idx)
-                total_gap -= 1
-                if total_gap == 0:
-                    break
-                if tokenized_lst[cur_mid_idx] == normalized_lst[cur_mid_idx+1]:
-                    del normalized_lst[cur_mid_idx+1]
-                elif tokenized_lst[cur_mid_idx+1] == normalized_lst[cur_mid_idx]:
-                    del tokenized_lst[cur_mid_idx+1] 
+                # if a misalignment happens, we assume that the next 10 tokens will also be different
+                # and the next word in the longer list will equal to the current word of the shorter list
+                if all(map(dif_check, zip(tokenized_lst[cur_mid_idx: cur_mid_idx + dif_in_a_row],
+                                          compared_lst[cur_mid_idx: cur_mid_idx + dif_in_a_row]))):
+                    misalign_idx.append(pre_mis_idx)
+                    total_gap -= 1
+                    if total_gap == 0:
+                        break
+                    if tokenized_lst[cur_mid_idx] == compared_lst[cur_mid_idx+1]:
+                        del compared_lst[cur_mid_idx+1]
+                    elif tokenized_lst[cur_mid_idx+1] == compared_lst[cur_mid_idx]:
+                        del tokenized_lst[cur_mid_idx+1] 
             
             pre_mis_idx = cur_mid_idx
-                    
+
+    combine = list(zip(tk_lst[:min_len], norm_lst[:min_len]))           
     for idx in misalign_idx:
-        if idx - 1 >= 0:
-            fw.write(temp.format(idx - 1, tk_lst[idx - 1], norm_lst[idx - 1]))
-        fw.write(temp.format(idx, tk_lst[idx], normalized_lst[idx]))
-        if idx + 1 < min_len:
-            fw.write(temp.format(idx + 1, tk_lst[idx + 1], norm_lst[idx + 1]))
+        left = idx - context_window if idx - context_window >=0 else 0
+        right = idx + context_window + 1
+        i = left
+        for pair in combine[left: right]:
+            fw.write(temp.format(i, pair[0], pair[1]))
+            i += 1
+
         fw.write("\n")
         
     fw.close()

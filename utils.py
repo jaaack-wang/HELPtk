@@ -65,7 +65,10 @@ def apply_trans_rules(rules, text, final_trim=True):
     tranformation rules that contain the target pattern and replacement pattern pairs.'''
     
     for target, replace in rules:
-        text = re.sub(fr"\b{target}\b", replace, text, flags=re.IGNORECASE) 
+        if "(\w)" in target or "(\S)" in target:
+            text = re.sub(fr"{target}", fr"{replace}", text, flags=re.IGNORECASE)
+        else:
+            text = re.sub(fr"\b{target}\b", fr"{replace}", text, flags=re.IGNORECASE)
         
     if final_trim: return re.sub(r"\s+", " ", text).strip()
     else: return text

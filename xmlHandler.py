@@ -85,8 +85,13 @@ def createXmlFileFromStr(filename=None, root_name="TEI.2", header="",
     else:
         filename = filename if filename.endswith('.xml') else filename + '.xml'
     content = f'<{root_name}>' + header + body + f'</{root_name}>'
-    content = bs(content, 'xml').prettify()
-    content = content.replace('<?xml version="1.0" encoding="utf-8"?>\n', '')
+    try:
+        content = bs(content, 'xml').prettify()
+        content = content.replace('<?xml version="1.0" encoding="utf-8"?>\n', '')
+    except Exception as e:
+        print(f"\033[32mGenerated XML text for {filename} cannot be prettified\033[0m due to ",  e)
+        print("But this has no really bad effects on the created xml file other than being less" \
+              " pretty when read in plain text software.")
     parser = etree.XMLParser(recover=True)
     try:
         root = etree.fromstring(content, parser=parser)

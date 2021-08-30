@@ -66,10 +66,10 @@ def v_past_tense(verb, irreg_v_dict=irreg_v_dict, rand_idx=0):
         return irreg_v_dict[verb]['VBD'][rand_idx]
     if verb[-1] == "e":
         return verb + "d"
-    if verb[-1] == "y" and verb[-2] not in vowels:
-        return verb[:-1] + "ied"
     if len(verb) <= 2:
         return verb + "ed"
+    if verb[-1] == "y" and verb[-2] not in vowels:
+        return verb[:-1] + "ied"
     if verb[-1] not in vowels + ['y', 'x', 'w'] and verb[-2] in vowels:
         if verb[-3] not in vowels and len(verb) <= 5:
             return verb + verb[-1] + "ed"
@@ -91,23 +91,30 @@ def textNormalizing(text, norm_rules=norm_rules, verbs=verbs):
     text = apply_trans_rules(norm_rules, text)
     
     vb, vbz, vbd = verbs
+
+    for i in range(len(vb)):
+        # for third person singular
+        text = re.sub(fr"\b{vb[i]}e?th\b", vbz[i], text, flags=re.IGNORECASE)
+        # for second person singular
+        text = re.sub(fr"\b{vb[i]}'?e?d?st\b", vb[i], text, flags=re.IGNORECASE)
+    
     # 嗨 is a Chinese word for "hi", used as a marker to locate past tense verbs to convert. 
     # Simply changing 'd ---> ed should be much less accurate than looking at them case by case. 
     # As 嗨'd is a very unlikely sequence to appear in any text I can think of, hence the use
     marked_vs = re.findall(r"\b\S+嗨'd\b", text)
     for marked_v in marked_vs:
         v = marked_v[:-3] # get the base verb
-        if v in vb: # if the base verb is in the common verb list we have, look up its past tense there
+        if v in vb or v + "e" in v: # if the base verb is in the common verb list we have, look up its past tense there
             idx = vb.index(v)
             text = re.sub(fr"\b{marked_v}\b", vbd[idx], text, flags=re.IGNORECASE)
-            
-        else: # otherwise, use the v_past_tense function above
-            text = re.sub(fr"\b{marked_v}\b", v_past_tense(v), text, flags=re.IGNORECASE)
-        
-    for i in range(len(vb)):
-        # for third person singular
-        text = re.sub(fr"\b{vb[i]}e?th\b", vbz[i], text, flags=re.IGNORECASE)
-        # for second person singular
-        text = re.sub(fr"\b{vb[i]}'?e?st\b", vb[i], text, flags=re.IGNORECASE)
+        elif irreg_v_dict.get(v):
+            text = re.sub(fr"\b{marked_v}\b", irreg_v_dict[v]['VBD'][0],  text, flags=re.IGNORECASE)
+        elif irreg_v_dict.get(v + "e"):
+            text = re.sub(fr"\b{marked_v}\b", irreg_v_dict[v + "e"]['VBD'][0], text, flags=re.IGNORECASE)
+        else:
+            text = re.sub(fr"\b{marked_v}\b", v + "ed", text, flags=re.IGNORECASE)
+
+    # make sure 嗨 is all removed
+    text = re.sub(r"嗨", "", text)
     
     return text

@@ -1,6 +1,6 @@
 '''
 - Author: Zhengxiang (Jack) Wang 
-- Date: 2021-08-27
+- Date: 2021-08-27, 08-29 modified 
 - GitHub: https://github.com/jaaack-wang 
 - About: A set of handy methods and a general framework for remakng a xml file 
 with just a few lines of code.
@@ -47,7 +47,7 @@ def _make_attr_pair(key, value):
     '''Create a xml node attritube given key and value.'''
     if value != "\"":
         return f'{key}="{value}"'
-    return f"{key}='{value}'"
+    return f"{key}=\"'\""
 
 def _make_attr_pairs(keys, values):
     '''Create a list of xml node attritubes given keys and values.'''
@@ -112,17 +112,25 @@ def _build_new_body(filepath, tokenized, normalized, tags,
     tag_idx = 0
     
     # convert the tokenized into a list of tokens based tags and whitespaces 
-    tokenized = re.findall(r"(</?[^>]+>|\S+)", tokenized)
+    tokenized = re.findall(r"(<[^>]+>|\S+)", tokenized)
     annotated = _lst_as_func(annotation_values) # this turns the annotation_values into a "list_func", see above.
     # if normalized text was made
     if normalized:
         keys = ['Original', 'Normalized'] + annotation_keys
-        normalized = re.findall(r"(</?[^>]+>|\S+)", normalized)
+        normalized = re.findall(r"(<[^>]+>|\S+)", normalized)
+
+        # debugging whether the annotation align with the tokenized body
+        if annotation_keys:
+            if len(tokenized) != len(annotation_values[0]):
+                print(f"\033[31mLength not equal. Filepath: {filepath}\033[0m")
+                # log the words misalignments. This is automatic, unless the code is removed.
+                words_misalignments_logger(filepath, body.split(), annotation_values[0], "Annotated")
+                return
         
         # aligning tags and words one by one.
         try:
             for i in range(len(tokenized)):
-                if tokenized[i][0] == "<" and tokenized[i][-1] == ">":
+                if tokenized[i][0] == "<" and tokenized[i][-1] == ">": # or if tokenized[i] == "<tag>":
                     new_body.append(tags[tag_idx])
                     tag_idx += 1
                 else:
@@ -251,23 +259,23 @@ def _tokenize_xml(filepath, head_node, body_node, apply_prep_rules=False, spell_
         return 
     
     tags = re.findall(r"<[^>]+>", body)
-    body = re.sub(r"<[^>]+>", "<tag>", body)
+    body = re.sub(r"<[^>]+>", " <tag> ", body)
     body = textPreprocessing(body, apply_prep_rules=apply_prep_rules)
     if spell_norm:
         body_norm = textNormalizing(body)
         # 嗨 is a marker to locate past tense verb ending with 'd, now change it back 
         # to where it should be after the text has been normalized.
-        # the reason to spell 嗨'd all out is to make sure that the original 嗨 if any is not changed
-        body = re.sub(r"嗨'd", "'d", body) 
+        body = re.sub(r"嗨", "", body) 
         if len(body_norm.split()) != len(body.split()):
             print(f"\033[31mLength not equal. Filepath: {filepath}\033[0m")
             # log the words misalignments. This is automatic, unless the code is removed.
             words_misalignments_logger(filepath, body.split(), body_norm.split())
-            return 
+            return
+        
         return header, body, body_norm, tags
     
-    # if no spell norm is performed, also need to change the 嗨'd back to 'd
-    body = re.sub(r"嗨'd", "'d", body)
+    # if no spell norm is performed, also need to remove the 嗨 
+    body = re.sub(r"嗨", "", body)
     return header, body, None, tags
     
 
@@ -308,7 +316,12 @@ def _execute(file_dir, filename, head_node, body_node, root_name='TEI.2', dst_di
         - annotation_func(method or None): the correponding annotation_func that can get the annotation_values to 
                                          build the new body for the xml file to be remade.
                                          '''
-    
+    if not apply_prep_rules and spell_norm:
+        print("If apply_prep_rules=False, spell_norm must also be set False to avoid words misalignment problem.")
+        print("\033[32mspell_norm and word_alignment_debug (if on) accordingly have been turned off.\033[0m")
+        spell_norm = False
+        word_alignment_debug = False
+        
     filepath_in = join(file_dir, filename)
     fn_out = filename if "/" not in filename else filename.split("/")[-1]
     if _skip_exists(join(dst_dir, fn_out), skip_exists):
@@ -440,13 +453,19 @@ class xmlCorpusRemaker:
     *
     * - multitasking(bool): whether to do multithreading, defaults to False.
     *
-    * - threads_num(int): number of threads occuring at the runtime, defaults to 10.                               
+    * - threads_num(int): number of threads occuring at the runtime, defaults to 10.
+    * - remain_files_only(bool): whether to only process files that have not been processed. 
     **************************************************************************************************************
     
     # Besides, the class also provide handy method to show the corpus files by
-    >>> remaker.show_filenames()
+    >>> remaker.show_filenames() # for the original
+    >>> remaker.get_remade_xml_filepaths() for the remade ones
     # Or to randomize the filenames, which will be important while playing around the corpus.
-    >>> remaker.shuffle_filename()
+    >>> remaker.shuffle_filenames()
+    # to check the remaining filenames to process if there was a bug that prevent it being processed
+    >>> remaker.remaining_files()
+    # to debug the remade xml files if they have been normalized
+    >>> remaker.debug_remade_corpus()
     '''
     def __init__(self, corpus_dir, head_node, body_node, root_name='TEI.2', dst_dir=None,
                  include_sub_dir=False, shuffle=False):
@@ -474,10 +493,17 @@ class xmlCorpusRemaker:
         self._root_name = root_name    
     
     def show_filenames(self, num_to_show=None):
-        return self._filenames
+        return self._filenames[:num_to_show]
     
-    def shuffle_filename(self):
+    def shuffle_filenames(self):
         random.shuffle(self._filenames)
+
+    def remaining_files(self):
+        out = []
+        for f in self._filenames:
+            if not exists(join(self._dst_dir, f)):
+                out.append(f)
+        return out
 
     def get_remade_xml_filepaths(self):
         filenames = get_filenames_from_dir(self._dst_dir, False, ".xml")
@@ -494,7 +520,22 @@ class xmlCorpusRemaker:
             raise TypeError("num_or_ratio must be either int, float in (0, 1), or not given (None).")
     
     def _run(self, func, apply_prep_rules, spell_norm, num_or_ratio, word_alignment_debug,
-             skip_exists, text_lower_len, text_upper_len, multitasking, threads_num):
+             skip_exists, text_lower_len, text_upper_len, multitasking, threads_num, remain_files_only=False):
+
+        if not apply_prep_rules and spell_norm:
+            print("If apply_prep_rules=False, spell_norm must also be set False to avoid words misalignment problem.")
+            print("\033[32mspell_norm and word_alignment_debug (if on) accordingly have been turned off.\033[0m")
+            spell_norm = False
+            word_alignment_debug = False
+
+        if not spell_norm and word_alignment_debug:
+            print("word_alignment_debug is for spelling normalized text only")
+            print("\033[32mword_alignment_debug has been turned off.\033[0m")
+            word_alignment_debug = False
+
+        if remain_files_only:
+            fnames_copy = self._filenames
+            self._filenames = self.remaining_files()
         
         part = self._get_part(num_or_ratio)
         if not multitasking:
@@ -515,38 +556,41 @@ class xmlCorpusRemaker:
                     threads.append(t)
                 for t in threads:
                     t.join()
+                    
+        if remain_files_only:
+            self._filenames = fnames_copy
     
     def tokenize_the_corpus(self, apply_prep_rules=False, spell_norm=False, num_or_ratio=None,
                             word_alignment_debug=False, skip_exists=True,
                             text_lower_len=0, text_upper_len=1000000,
-                            multitasking=False, threads_num=10):
+                            multitasking=False, threads_num=10, remain_files_only=False):
         
         self._run(tokenize_xml_body, apply_prep_rules, spell_norm, num_or_ratio, word_alignment_debug, 
-                  skip_exists, text_lower_len, text_upper_len, multitasking, threads_num)
+                  skip_exists, text_lower_len, text_upper_len, multitasking, threads_num, remain_files_only)
                 
     def pos_tag_the_corpus(self, apply_prep_rules=False, spell_norm=False, num_or_ratio=None,
                            word_alignment_debug=False, skip_exists=True,
                            text_lower_len=0, text_upper_len=1000000,
-                           multitasking=False, threads_num=10):
+                           multitasking=False, threads_num=10, remain_files_only=False):
         
         self._run(pos_tag_xml_body, apply_prep_rules, spell_norm, num_or_ratio, word_alignment_debug, 
-                  skip_exists, text_lower_len, text_upper_len, multitasking, threads_num)
+                  skip_exists, text_lower_len, text_upper_len, multitasking, threads_num, remain_files_only)
     
     def lemmatize_the_corpus(self, apply_prep_rules=False, spell_norm=False, num_or_ratio=None,
                              word_alignment_debug=False, skip_exists=True,
                              text_lower_len=0, text_upper_len=1000000,
-                             multitasking=False, threads_num=10):
+                             multitasking=False, threads_num=10, remain_files_only=False):
         
         self._run(lemmatize_xml_body, apply_prep_rules, spell_norm, num_or_ratio, word_alignment_debug, 
-                  skip_exists, text_lower_len, text_upper_len, multitasking, threads_num)
+                  skip_exists, text_lower_len, text_upper_len, multitasking, threads_num, remain_files_only)
     
     def corpus_with_pos_lemma(self, apply_prep_rules=False, spell_norm=False, num_or_ratio=None,
                               word_alignment_debug=False, skip_exists=True,
                               text_lower_len=0, text_upper_len=1000000,
-                              multitasking=False, threads_num=10):
+                              multitasking=False, threads_num=10, remain_files_only=False):
         
         self._run(xml_body_with_pos_lemma, apply_prep_rules, spell_norm, num_or_ratio, word_alignment_debug, 
-                  skip_exists, text_lower_len, text_upper_len, multitasking, threads_num)
+                  skip_exists, text_lower_len, text_upper_len, multitasking, threads_num, remain_files_only)
 
     def debug_remade_corpus(self, num_or_ratio=None, check_num=10, err_threshold=0.1, print_msg=True):
         part = self._get_part(num_or_ratio)

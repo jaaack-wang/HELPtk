@@ -5,18 +5,8 @@
 - About: A Stanford CoreNLP Toolbox with three wrapped up class methods
 that enable Python to tokenize and annotate without text length restrictions. 
 '''
-# if you do not have stanfordcorenlp installed, import the one that comes with HELPtk.
-# please note that the original stanfordcorenlp can be problematic 
-try:
-    from stanfordcorenlp import StanfordCoreNLP
-except:
-    from corenlp import StanfordCoreNLP
+from stanfordcorenlp import StanfordCoreNLP
 import json
-
-
-# Please change the path to StanfordCoreNLP here when you first run the scripts.
-# StanfordCoreNLP can be downloaded from: https://stanfordnlp.github.io/CoreNLP/index.html
-path_to_corenlp = "/Users/wzx/stanford-corenlp-4.2.2"
 
 
 class CoreNLP:
@@ -25,9 +15,10 @@ class CoreNLP:
     (which is 100,000 chars because of the use of server). More concretely, this class
     allow oversized text to be processed by Stanford CoreNLP sever by automatic text slicing'''
     
-    def __init__(self, path_to_corenlp, props, whitespace_based=False, split_hyphen=False, step=5000):
+    def __init__(self, props, local_host='http://localhost', port=9999,
+                 whitespace_based=False, split_hyphen=False, step=5000):
         
-        self._nlp = StanfordCoreNLP(path_to_corenlp)
+        self._nlp = StanfordCoreNLP(local_host, port)
         self.props = props
         if whitespace_based: 
             self.props['tokenize.whitespace'] = 'true'
@@ -39,18 +30,21 @@ class CoreNLP:
             self.props['tokenize.options'] = "splitHyphenated=false"
         self._step = step
         self._text = ''
+        self._has_percent = False
     
     def _annotating(self, text):
         '''Annotating given text based on preset properties (annotating setups).'''
         try:
             annotated_text = self._nlp.annotate(text, properties=self.props)
             return json.loads(annotated_text)
+        
         except Exception as e:
             print("\033[32mTokenizingError: \033[0m", e)
             if "Expecting value: line 1 column 1 (char 0)" in str(e):
+                
                 print("Trying to re-do the process by narrowing the slicing steps by 500. Was: %i. Now: %i" 
-                 % (self._step, self._step - 500))
-                self._step -= 500
+                 % (self._step, self._step * 0.75))
+                self._step = self._step * 0.75
                 return
             
     def _text_annotating(self, text):
@@ -75,13 +69,15 @@ class CoreNLP:
     
     def get_annotated_text(self, text):
         '''Auto-adjust the slicing steps when needed to get the final annotated text.'''
+        
         annotated_text = []
         while not annotated_text:
             annotated_text = self._text_annotating(text)
             if self._step == 0:
-                self._step = 5000
-                raise TypeError("Text impossible to parse and annotate. Please check the text type or if it has spaces.")
-        
+                print("Text cannot be annotated. Please check whether if it has spaces or if" \
+                      "it contains special symbols that cannot be annotated via server.")
+                break
+            
         self._step = 5000
         return annotated_text
         
@@ -92,10 +88,10 @@ class stanfordTokenizer(CoreNLP):
     or set "split_hyphen=True" so that the tokenizer does not always skip hyphens. This class 
     inherits the CoreNLP class method so it can tokenize a text without text length restrictions.'''
         
-    def __init__(self, path_to_corenlp=path_to_corenlp, 
+    def __init__(self, local_host='http://localhost', port=9999,
                  whitespace_based=False, split_hyphen=False, step=5000):
         props = {'annotators': 'tokenize', 'outputFormat': 'json'} 
-        super().__init__(path_to_corenlp, props, whitespace_based, split_hyphen, step)
+        super().__init__(props, local_host, port, whitespace_based, split_hyphen, step)
         
     def tokenize(self, text, list_out=True):
         annotated_text = self.get_annotated_text(text)
@@ -120,10 +116,10 @@ class stanfordAnnotator(CoreNLP):
     enviroment (such as text over 4,000,000 tokens), so it is not recommended to use Python to conduct 
     such tasks. Java is a more native, stable and realiable option as Standfore CoreNLP is written in Java.'''
     
-    def __init__(self, path_to_corenlp=path_to_corenlp, 
+    def __init__(self, local_host='http://localhost', port=9999,
                  whitespace_based=True, split_hyphen=False, step=5000):
         props = {'annotators': 'tokenize,ssplit,pos,lemma', 'outputFormat': 'json'}
-        super().__init__(path_to_corenlp, props, whitespace_based, split_hyphen, step)
+        super().__init__(props, local_host, port, whitespace_based, split_hyphen, step)
     
     def _get_attr_values(self, text, attr, include_tokens):  
         annotated_text = self.get_annotated_text(text)
