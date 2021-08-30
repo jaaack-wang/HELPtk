@@ -43,8 +43,8 @@ class CoreNLP:
             if "Expecting value: line 1 column 1 (char 0)" in str(e):
                 
                 print("Trying to re-do the process by narrowing the slicing steps by 500. Was: %i. Now: %i" 
-                 % (self._step, self._step * 0.75))
-                self._step = self._step * 0.75
+                 % (self._step, int(self._step * 0.75)))
+                self._step = int(self._step * 0.75)
                 return
             
     def _text_annotating(self, text):
